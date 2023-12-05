@@ -1,1 +1,1 @@
-# guanyusoh.github.io
+This is the source code to Guan Yu Soh's public academic website: https://guanyusoh.github.io. The original template of the website belongs to Jon Barron: https://jonbarron.info/.
