@@ -1,0 +1,8 @@
+Model Information:
+* title:	Kirin - Quirky Series
+* source:	https://sketchfab.com/3d-models/kirin-quirky-series-b280c8bc5b87471eac1068acc91fdce1
+* author:	Omabuarts Studio (https://sketchfab.com/omabuarts)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
