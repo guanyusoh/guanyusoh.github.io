@@ -1,8 +1,0 @@
-Model Information:
-* title:	Pegasus - Quirky Series
-* source:	https://sketchfab.com/3d-models/pegasus-quirky-series-a4488ae7a2d2405c927a50f5a8b2d6bb
-* author:	Omabuarts Studio (https://sketchfab.com/omabuarts)
-
-Model License:
-* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
-* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
