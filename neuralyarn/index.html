@@ -1,248 +1,407 @@
-
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Neural Appearance Model for Cloth Rendering">
+  <meta name="keywords" content="Neural Cloth, Cloth Appearance, Neural Yarn Appearance">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neural Appearance Model for Cloth Rendering</title>
 
-<head lang="en">
-    <meta charset="UTF-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
 
-    <title>Zip-NeRF</title>
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/yarn_icon.png">
 
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+  <style>
+    .grid-container {
+        display: grid;
+        /* Make the first column narrower */
+        grid-template-columns: 1fr 3fr 3fr 3fr;
+        grid-template-rows: 1fr 3fr 3fr 3fr 1fr;
+        gap: 2px;
+        width: 100%;
+        max-width: 1200px; /* Limit maximum width for larger screens */
+        margin: auto;
+    }
+    .grid-item {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        /* border: 1px solid #ccc; */
+        text-align: center;
+        /* padding: 10px; */
+        box-sizing: border-box;
+    }
+    .image-cell img {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+    }
+    .text-cell {
+        font-weight: 900;
+        font-size: 1.5em;
+        /* padding: 5px; */
+    }
+    .side-text {
+        transform: rotate(-90deg);
+        white-space: nowrap;
+        height: 100%;
+        line-height: 1;
+    }
 
-    <meta property="og:image" content="https://jonbarron.info/zipnerf/img/nottingham.jpg">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1296">
-    <meta property="og:image:height" content="840">
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://jonbarron.info/zipnerf/"/>
-    <meta property="og:title" content="Zip-NeRF: Anti-Aliased Grid-Based Neural Radiance Fields" />
-    <meta property="og:description" content="Neural Radiance Field training can be accelerated through the use of grid-based representations in NeRF's learned mapping from spatial coordinates to colors and volumetric density. However, these grid-based approaches lack an explicit understanding of scale and therefore often introduce aliasing, usually in the form of jaggies or missing scene content. Anti-aliasing has previously been addressed by mip-NeRF 360, which reasons about sub-volumes along a cone rather than points along a ray, but this approach is not natively compatible with current grid-based techniques. We show how ideas from rendering and signal processing can be used to construct a technique that combines mip-NeRF 360 and grid-based models such as Instant NGP to yield error rates that are 8%-77% lower than either prior technique, and that trains 24x faster than mip-NeRF 360." />
+    /* Responsive adjustments for smaller screens */
+    @media (max-width: 768px) {
+        .grid-container {
+            width: 90%; /* Reduce width slightly for small screens */
+        }
+        .text-cell {
+            font-size: 1.2em; /* Slightly reduce text size */
+        }
+    }
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Zip-NeRF: Anti-Aliased Grid-Based Neural Radiance Fields" />
-    <meta name="twitter:description" content="Neural Radiance Field training can be accelerated through the use of grid-based representations in NeRF's learned mapping from spatial coordinates to colors and volumetric density. However, these grid-based approaches lack an explicit understanding of scale and therefore often introduce aliasing, usually in the form of jaggies or missing scene content. Anti-aliasing has previously been addressed by mip-NeRF 360, which reasons about sub-volumes along a cone rather than points along a ray, but this approach is not natively compatible with current grid-based techniques. We show how ideas from rendering and signal processing can be used to construct a technique that combines mip-NeRF 360 and grid-based models such as Instant NGP to yield error rates that are 8%-77% lower than either prior technique, and that trains 24x faster than mip-NeRF 360." />
-    <meta name="twitter:image" content="https://jonbarron.info/zipnerf/img/teaser.jpg" />
+    @media (max-width: 480px) {
+        .grid-container {
+            width: 100%; /* Full width for very small screens */
+        }
+        .text-cell {
+            font-size: 1em; /* Further reduce text size */
+        }
+    }
 
+      /* Specific styles for the second grid with an extra row and cropped images */
+      .grid-container.second-grid {
+            grid-template-rows: 1fr 2fr 2fr 2fr 2fr; /* Flexible rows for better fit */
+        }
+</style>
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.css">
-    <link rel="stylesheet" href="css/app.css">
-
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.3/clipboard.min.js"></script>
-    
-    <script src="js/app.js"></script>
-    <script src="js/video_comparison.js"></script>
 </head>
-
+</head>
 <body>
-    <div class="container" id="main">
-        <div class="row">
-            <h2 class="col-md-12 text-center">
-                <b>Zip-NeRF</b>: Anti-Aliased Grid-Based Neural Radiance Fields</br> 
-                <small>
-                ICCV 2023 (Oral Presentation, Best Paper Finalist)
-                </small>
-            </h2>
-        </div>
-        <div class="row">
-            <div class="col-md-12 text-center">
-                <ul class="list-inline">
-                    <li>
-                        <a href="https://jonbarron.info/">
-                          Jonathan T. Barron
-                        </a>
-                    </li>
-                    <li>
-                        <a href="http://bmild.github.io/">
-                            Ben Mildenhall
-                        </a>
-                    </li>
-                    <li>
-                        <a href="http://dorverbin.github.io/">
-                          Dor Verbin
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://pratulsrinivasan.github.io/">
-                          Pratul P. Srinivasan
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://phogzone.com/">
-                          Peter Hedman
-                        </a>
-                    </li>
-                    </br>Google
-                </ul>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Neural Appearance Model for <br> Cloth Rendering</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://guanyusoh.github.io/">Guan Yu Soh</a>,</span>
+            <span class="author-block">
+              <a href="https://research.manchester.ac.uk/en/persons/zahra.montazeri">Zahra Montazeri</a></span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">University of Manchester</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <!-- PDF Link. -->
+              <span class="link-block">
+                <a href="https://arxiv.org/pdf/2311.04061"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                  </span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2311.04061"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <!-- Video Link. -->
+              <span class="link-block">
+                <a href="https://www.youtube.com/watch?v=VjNnacWDWlI&list=PLyR9LORsBdyqsGHNKCwd19vwZwGXYsYFb&index=1"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-youtube"></i>
+                  </span>
+                  <span>Video</span>
+                </a>
+              </span>
+              <!-- Code Link. -->
+              <span class="link-block">
+                <a href=""
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                  </a>
+              </span>
             </div>
-        </div>
 
-
-        <div class="row">
-                <div class="col-md-4 col-md-offset-4 text-center">
-                    <ul class="nav nav-pills nav-justified">
-                        <li>
-                            <a href="https://arxiv.org/abs/2304.06706">
-                            <image src="img/zip_paper_image.jpg" height="60px">
-                                <h4><strong>Paper</strong></h4>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://www.youtube.com/watch?v=xrrhynRzC8k">
-                            <image src="img/youtube_icon.png" height="60px">
-                                <h4><strong>Video</strong></h4>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+          </div>
         </div>
-
-
-
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <video id="v0" width="100%" autoplay loop muted controls>
-                  <source src="img/teaser.mp4" type="video/mp4" />
-                </video>
-						</div>
-        </div>
-
-
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    Abstract
-                </h3>
-                <p class="text-justify">
-Neural Radiance Field training can be accelerated through the use of grid-based representations in NeRF's learned mapping from spatial coordinates to colors and volumetric density. However, these grid-based approaches lack an explicit understanding of scale and therefore often introduce aliasing, usually in the form of jaggies or missing scene content. Anti-aliasing has previously been addressed by mip-NeRF 360, which reasons about sub-volumes along a cone rather than points along a ray, but this approach is not natively compatible with current grid-based techniques. We show how ideas from rendering and signal processing can be used to construct a technique that combines mip-NeRF 360 and grid-based models such as Instant NGP to yield error rates that are 8%-77% lower than either prior technique, and that trains 24x faster than mip-NeRF 360.
-                </p>
-            </div>
-        </div>
-
-
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    Video
-                </h3>
-                <div class="text-center">
-                    <div style="position:relative;padding-top:56.25%;">
-                        <iframe src="https://youtube.com/embed/xrrhynRzC8k" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-<br>
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    360° Video Flythroughs
-                </h3>
-                <div class="text-center">
-                    <div style="position:relative;padding-top:56.25%;">
-                        <iframe src="https://www.youtube.com/embed/videoseries?list=PLzPoYEE6Aw7Jzjek1uEIPnpcTDL3u8tb4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>
-                        <!-- <iframe src="https://youtube.com/embed/jbE2ri8xEZo" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe> -->
-                    </div>
-                </div>
-            </div>
-        </div>
-<br>
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    Multisampling
-                </h3>
-				<table style="width: 100%; border-collapse: collapse;">
-				  <tr>
-				    <td style="text-align: center;">
-		                <video id="v0" width="100%" autoplay loop muted>
-		                  <source src="img/hexify_train.mp4" type="video/mp4" />
-		                </video>
-					</td>
-				    <td style="text-align: center;">
-		                <video id="v0" width="100%" autoplay loop muted>
-		                  <source src="img/hexify_test.mp4" type="video/mp4" />
-		                </video>
-					</td>
-				  </tr>
-				  <tr>
-				    <td style="text-align: center;">When Training</td>
-				    <td style="text-align: center;">When Rendering</td>
-				  </tr>
-				</table>
-                <p class="text-justify">
-                    We use multisampling to approximate the average NGP feature over a conical frustum, by constructing a 6-sample pattern that exactly matches the frustum's first and second moments. When training, we randomly rotate and flip (along the ray axis) each pattern, and when rendering we deterministically flip and rotate each adjacent pattern by 30 degrees.
-                </p>
-            </div>
-        </div>
-<br>
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    XY aliasing
-                </h3>
-                <video class="video" width=100% id="xyalias" loop playsinline autoplay muted src="img/xy_alias_swipe_crf27.mp4" onplay="resizeAndPlay(this)"></video>
-                <canvas height=0 class="videoMerge" id="xyaliasMerge"></canvas>
-                <p class="text-justify">
-                    A naive baseline (left) combining mip-NeRF 360 and Instant NGP results in aliasing as the camera moves laterally. Our full method (right) produces prefiltered renderings that do not flicker or shimmer.
-                </p>
-            </div>
-        </div>
-           
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    Z aliasing
-                </h3>
-                <video id="v0" width="100%" autoplay loop muted>
-                  <source src="img/z_alias_pdf_labeled.m4v" type="video/mp4" />
-                </video>
-                <p class="text-justify">
-                    The proposal network used for resampling points along rays in mip-NeRF 360 results in an artifact we refer to as <em>z-aliasing</em>, where foreground content alternately appears and disappears as the camera moves toward or away from scene content. Z-aliasing occurs when the initial set of samples from the proposal network is not dense enough and misses thin structures, such as the chair above. Missed content can not be recovered by later rounds of sampling, since no future samples will be placed at that location along the ray. Our improvements to proposal network supervision result in a prefiltered proposal output that preserves the foreground object for all frames in this sequence. The plots above depict samples along a ray for three rounds of resampling (blue, orange, and green lines), with the y axis showing rendering weight (how much each interval contributes to the final rendered color), as a normalized probability density.
-                </p>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    Citation
-                </h3>
-                <div class="form-group col-md-10 col-md-offset-1">
-                    <textarea id="bibtex" class="form-control" readonly>
-@article{barron2023zipnerf,
-    title={Zip-NeRF: Anti-Aliased Grid-Based Neural Radiance Fields},
-    author={Jonathan T. Barron and Ben Mildenhall and 
-            Dor Verbin and Pratul P. Srinivasan and Peter Hedman},
-    journal={ICCV},
-    year={2023}
-}</textarea>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-8 col-md-offset-2">
-                <h3>
-                    Acknowledgements
-                </h3>
-                <p class="text-justify">
-                Thanks to Janne Kontkanen, Rick Szeliski, and David Salesin for their comments on the text, and to Ricardo Martin-Brualla, Keunhong Park, Ben Poole, Aleksander Hołyński, Etienne Pot, Kostas Rematas, Daniel Duckworth, Marcos Seefelder, Cardin Moffett, and Peter Zhizhin for their advice and help.
-                    <br><br>
-                The website template was borrowed from <a href="http://mgharbi.com/">Michaël Gharbi</a> and <a href="https://dorverbin.github.io/refnerf">Ref-NeRF</a>.
-                </p>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="container">
+    <div class="hero-body">
+      <img src="./static/images/teaser.jpg" />
+      <h2 class="subtitle has-text-centered">
+        Neural appearance model aggregates the fiber model while perserving physical accuracy.
+      </h2>
+    </div>
+  </div>
+</section>
+
+
+<!-- <section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-steve">
+          <video poster="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/steve.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-chair-tp">
+          <video poster="" id="chair-tp" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/chair-tp.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-shiba">
+          <video poster="" id="shiba" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/shiba.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-fullbody">
+          <video poster="" id="fullbody" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/fullbody.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-blueshirt">
+          <video poster="" id="blueshirt" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/blueshirt.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-mask">
+          <video poster="" id="mask" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mask.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-coffee">
+          <video poster="" id="coffee" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/coffee.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-toby">
+          <video poster="" id="toby" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/toby2.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
+</section> -->
+
+
+<section class="section grey">
+  <div class="container is-max-desktop grey">
+    <!-- Abstract. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            The realistic rendering of woven and knitted fabrics has posed significant challenges throughout many years. Previously, fiber-based micro-appearance models have achieved considerable success in attaining high levels of realism. However, rendering such models remains complex due to the intricate internal scatterings of hundreds of fibers within a yarn, requiring vast amounts of memory and time to render. 
+          </p>
+          <p>
+            In this paper, we introduce a new framework to capture aggregated appearance by tracing many light paths through the underlying fiber geometry. We then employ lightweight neural networks to accurately model the aggregated BSDF, which allows for the precise modeling of a diverse array of materials while offering substantial improvements in speed and reductions in memory. Furthermore, we introduce a novel importance sampling scheme to further speed up the rate of convergence. We validate the efficacy and versatility of our framework through comparisons with preceding fiber-based shading models as well as the most recent yarn-based model.
+          </p>
+        </div>
+      </div>
+    </div>
+    <!--/ Abstract. -->
+
+    <!-- Paper video. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Video</h2>
+        <!-- <div class="publication-video">
+          <iframe src="https://www.youtube.com/embed/MrKrnHhk8IA?rel=0&amp;showinfo=0"
+                  frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe> -->
+          
+        <!-- </div> -->
+      </div>
+    </div>
+    <!--/ Paper video. -->
+  </div>
+</section>
+
+<section class="hero grey">
+  <div class="container">
+    <div class="hero-body">
+      <div class="content has-text-centered">
+        <h2 class="title is-3">Pipeline</h2>
+      </div>
+      <img src="./static/images/pipeline.jpg" />
+      <!-- <h2 class="subtitle has-text-centered">
+        An overview of the pipeline detailing the steps from collecting the RDM to training the neural networks.
+      </h2> -->
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <!-- Animation. -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Results</h2>
+
+        <!-- Interpolating. -->
+        <h3 class="title is-4">Different Materials</h3>
+        <div class="content has-text-justified">
+          <p>
+            We are able to demonstrate that our materials work for many types of cloth, with different base geometry and different reflectance propoerties. It can be shown that our method outperforms the original fiber model in speed but maintaining the physical accuracy.
+          </p>
+        </div>
+        <div class="grid-container">
+          <!-- Top row for text -->
+          <div class="grid-item text-cell"></div>
+          <div class="grid-item text-cell">Ref. (EQ)</div>
+          <div class="grid-item text-cell">Ours</div>
+          <div class="grid-item text-cell">Ref. (ET)</div>
+          
+          <!-- Left column for text -->
+          <div class="grid-item text-cell side-text">Fleece</div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/fleece_eq_collage.png" alt="Image 1"></div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/n-fleece_collage.png" alt="Image 2"></div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/fleece_et_collage.png" alt="Image 3"></div>
+      
+          <div class="grid-item text-cell side-text">Silk</div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/silk_eq_collage.png" alt="Image 1"></div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/n-silk_collage.png" alt="Image 2"></div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/silk_et_collage.png" alt="Image 3"></div>
+      
+          <div class="grid-item text-cell side-text">Polyester</div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/polyester_eq_collage.png" alt="Image 1"></div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/n-polyester_collage.png" alt="Image 2"></div>
+          <div class="grid-item image-cell"><img src="./static/images/materials/polyester_et_collage.png" alt="Image 3"></div>
+      </div>
+        <!--/ Interpolating. -->
+
+        <!-- Re-rendering. -->
+        <h3 class="title is-4">Different Geometry</h3>
+        <div class="content has-text-justified">
+          <p>
+            We
+          </p>
+        </div>
+        <div class="grid-container second-grid">
+          <!-- Top row for text -->
+          <div class="grid-item text-cell"></div>
+          <div class="grid-item text-cell">Fleece</div>
+          <div class="grid-item text-cell">Half ρ</div>
+          <div class="grid-item text-cell">Double α</div>
+          
+          <!-- Left column for text -->
+          <div class="grid-item text-cell side-text">Ref.</div>
+          <div class="grid-item image-cell"><img src="./static/images/1-ply/fleece_1024spp.png" alt="Image 1"></div>
+          <div class="grid-item image-cell"><img src="./static/images/1-ply/fleece_05rho_1024spp.png" alt="Image 2"></div>
+          <div class="grid-item image-cell"><img src="./static/images/1-ply/fleece_2alpha_1024spp.png" alt="Image 3"></div>
+      
+          <div class="grid-item text-cell side-text">Ours</div>
+          <div class="grid-item image-cell"><img src="./static/images/1-ply/n-fleece_64spp.png" alt="Image 1"></div>
+          <div class="grid-item image-cell"><img src="./static/images/1-ply/n-fleece_05rho_64spp.png" alt="Image 2"></div>
+          <div class="grid-item image-cell"><img src="./static/images/1-ply/n-fleece_2alpha_64spp.png" alt="Image 3"></div>
+      
+          <div class="grid-item text-cell side-text">Ref.</div>
+          <div class="grid-item image-cell"><img src="./static/images/3-ply/fleece_1024spp.png" alt="Image 1"></div>
+          <div class="grid-item image-cell"><img src="./static/images/3-ply/fleece_05rho_1024spp.png" alt="Image 2"></div>
+          <div class="grid-item image-cell"><img src="./static/images/3-ply/fleece_2alpha_1024spp.png" alt="Image 3"></div>
+
+          <div class="grid-item text-cell side-text">Ours</div>
+          <div class="grid-item image-cell"><img src="./static/images/3-ply/n-fleece_64spp.png" alt="Image 1"></div>
+          <div class="grid-item image-cell"><img src="./static/images/3-ply/n-fleece_05rho_256spp.png" alt="Image 2"></div>
+          <div class="grid-item image-cell"><img src="./static/images/3-ply/n-fleece_2alpha_64spp.png" alt="Image 3"></div>
+      </div>
+        <!--/ Re-rendering. -->
+
+      </div>
+    </div>
+    <!--/ Animation. -->
+  </div>
+</section>
+
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+<pre><code>@inproceedings{soh2024neural,
+  title={Neural Appearance Model for Cloth Rendering},
+  booktitle={Computer Graphics Forum},
+  volume={43},
+  number={4},
+  pages={e15156},
+  year={2024},
+  organization={Wiley Online Library}
+}
+</code></pre>
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <a class="icon-link"
+         href="https://arxiv.org/pdf/2311.04061">
+        <i class="fas fa-file-pdf"></i>
+      </a>
+      <a class="icon-link" href="https://github.com/guanyusoh" class="external-link" disabled>
+        <i class="fab fa-github"></i>
+      </a>
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This website is licensed under a <a rel="license"
+                                                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+          <p>
+            Thank you to <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> for providing the website template.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>
